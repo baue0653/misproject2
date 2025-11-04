@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume</title>
+    <link rel="stylesheet" href="CSS/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="nav">
+            <div class="brand">My Portfolio</div>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="hobbies.html">Hobbies</a>
+                <a href="discover.html">Discover</a>
+                <a href="resume.html">Resume</a>
+                <a href="career.html">Career</a>
+                <a href="game.html">Game</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1 class="section-title">Professional Resume</h1>
+
+            <a class="btn" href="_Resume Personal  .pdf" download>Download PDF</a>
+
+            <section class="section resume-grid">
+                <aside class="card">
+                    <h3>Contact</h3>
+                    <p class="muted">Brooklyn Bauer</p>
+                    <p class="muted">brooklynbauer26@gmail.com</p>
+                    <p class="muted">715-450-2467</p>
+                    <div class="section">
+                        <h3>Skills</h3>
+                        <span class="pill">HTML</span>
+                        <span class="pill">CSS</span>
+                        <span class="pill">JavaScript</span>
+                        <span class="pill">Teamwork</span>
+                        <span class="pill">Communication</span>
+                    </div>
+                </aside>
+                <div>
+                    <div class="card">
+                        <h3>Education</h3>
+                        <p><strong>University of Minnesota Duluth</strong> — Consumer Insights and Analytics</p>
+                        <p class="muted">August 2024 – Present | Duluth, MN</p>
+                        <ul class="list">
+                            <li>Coursework: Business</li>
+                            <li>GPA: 3.66</li>
+                            <li>Clubs: CIA club, Women in Business</li>
+                        </ul>
+                    </div>
+                    <div class="card section">
+                        <h3>Experience</h3>
+                        <p><strong>Team Member</strong> — Burrachos</p>
+                        <p class="muted">June 2023 - Present | Eau Claire, WI</p>
+                        <ul class="list">
+                            <li>Arrange customer meals as requested</li>
+                            <li>Prepare food to be served</li>
+                            <li>Assist customers with any questions or concerns</li>
+                        </ul>
+                        <p><strong>Store Associate</strong> — Tin Roof Boutique</p>
+                        <p class="muted">May 2021 - Present | Pepin, WI</p>
+                        <ul class="list">
+                            <li>Interact with customers to ensure they have a positive shopping experience</li>
+                            <li>Manage inventory to make sure supply is accurate</li>
+                            <li>Introduce sales promotions</li>
+                        </ul>
+                    </div>
+                    <div class="card section">
+                        <h3>Achievements</h3>
+                        <ul class="list">
+                            <li>Certified in Microsoft</li>
+                            <li>Member of the National Honor's Society</li>
+                            <li>Part of the Honors Program at UMD</li>
+                            <li>Volunteered extensively for 4-H to help out local community</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="site-footer">© <span id="year"></span> My Portfolio</footer>
+    <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
+

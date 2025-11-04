@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duluth Crossy Road</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #1e3c72 0%, #2a5298 25%, #4a90e2 50%, #87ceeb 75%, #b0e0e6 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        .game-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            font-size: 2em;
+        }
+
+        #gameCanvas {
+            border: 3px solid #4a90e2;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #1e3c72 0%, #2a5298 20%, #4a90e2 40%, #87ceeb 60%, #b0e0e6 80%, #e0f6ff 100%);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .score {
+            color: white;
+            font-size: 1.3em;
+            margin: 10px 0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+
+        .controls {
+            color: white;
+            margin-top: 15px;
+            font-size: 1em;
+        }
+
+        .game-over {
+            color: #ff6b6b;
+            font-size: 1.8em;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        .level-complete {
+            color: #9b59b6;
+            font-size: 1.8em;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        .game-win {
+            color: #f39c12;
+            font-size: 1.8em;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: linear-gradient(45deg, #9b59b6, #e91e63);
+            animation: confetti-fall 3s linear infinite;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        button {
+            background: linear-gradient(45deg, #1e3c72, #4a90e2, #87ceeb);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .restart-section {
+            margin-top: 15px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🏠 Duluth Crossy Road</h1>
+        <div class="score">Score: <span id="score">0</span> | High Score: <span id="highScore">0</span> | Level: <span id="level">1</span></div>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div id="gameOver" class="game-over" style="display: none;">Game Over! Hit by Duluth traffic!</div>
+        <div id="levelComplete" class="level-complete" style="display: none;">Level Complete! 🎉</div>
+        <div id="gameWin" class="game-win" style="display: none;">Congratulations! You completed all 10 levels! 🏆</div>
+        <button onclick="startGame()" id="startBtn">Start Game</button>
+        <button onclick="restartGame()" id="restartBtn" style="display: none;">Play Again</button>
+        <div class="restart-section">
+            <button onclick="restartGame()" id="bottomRestartBtn">🔄 Try Again</button>
+        </div>
+        <div class="controls">
+            <p>Use arrow keys to cross Duluth safely!</p>
+            <p>Avoid cars, boats, and trains!</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
+        const gameOverElement = document.getElementById('gameOver');
+        const levelCompleteElement = document.getElementById('levelComplete');
+        const gameWinElement = document.getElementById('gameWin');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const bottomRestartBtn = document.getElementById('bottomRestBtn');
+        const levelElement = document.getElementById('level');
+
+        // Game variables
+        const tileSize = 20;
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const lanes = canvasHeight / tileSize;
+
+        let player = {
+            x: canvasWidth / 2 - tileSize / 2,
+            y: canvasHeight - tileSize * 2,
+            width: tileSize,
+            height: tileSize
+        };
+
+        let obstacles = [];
+        let score = 0;
+        let highScore = localStorage.getItem('duluthHighScore') || 0;
+        let level = 1;
+        let gameRunning = false;
+        let gameSpeed = 2;
+        let lastObstacleTime = 0;
+        let obstacleInterval = 2000;
+        let confettiParticles = [];
+
+        // Initialize game
+        function initGame() {
+            player = {
+                x: canvasWidth / 2 - tileSize / 2,
+                y: canvasHeight - tileSize * 2,
+                width: tileSize,
+                height: tileSize
+            };
+            obstacles = [];
+            score = 0;
+            level = 1;
+            gameRunning = false;
+            gameSpeed = 2;
+            obstacleInterval = 2000;
+            scoreElement.textContent = score;
+            highScoreElement.textContent = highScore;
+            levelElement.textContent = level;
+            gameOverElement.style.display = 'none';
+            levelCompleteElement.style.display = 'none';
+            gameWinElement.style.display = 'none';
+            startBtn.style.display = 'inline-block';
+            restartBtn.style.display = 'none';
+            drawGame();
+        }
+
+        // Create obstacles
+        function createObstacle() {
+            const lane = Math.floor(Math.random() * lanes - 2) + 1;
+            const obstacleTypes = ['car', 'boat', 'train'];
+            const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+            
+            // Increase difficulty with level
+            const speedMultiplier = 1 + (level - 1) * 0.3;
+            const obstacleCount = Math.min(3 + Math.floor(level / 3), 6);
+            
+            for (let i = 0; i < obstacleCount; i++) {
+                let obstacle = {
+                    x: type === 'train' ? -100 - (i * 100) : (type === 'boat' ? canvasWidth + 50 + (i * 80) : -50 - (i * 60)),
+                    y: lane * tileSize,
+                    width: type === 'train' ? 80 : (type === 'boat' ? 60 : 40),
+                    height: tileSize,
+                    speed: (gameSpeed + Math.random() * 2) * speedMultiplier,
+                    type: type,
+                    direction: type === 'boat' ? -1 : 1
+                };
+                
+                obstacles.push(obstacle);
+            }
+        }
+
+        // Draw game elements
+        function drawGame() {
+            // Clear canvas with beautiful blue gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+            gradient.addColorStop(0, '#1e3c72'); // Deep blue
+            gradient.addColorStop(0.2, '#2a5298'); // Royal blue
+            gradient.addColorStop(0.4, '#4a90e2'); // Bright blue
+            gradient.addColorStop(0.6, '#87ceeb'); // Sky blue
+            gradient.addColorStop(0.8, '#b0e0e6'); // Powder blue
+            gradient.addColorStop(1, '#e0f6ff'); // Light blue
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // Draw Lake Superior (top section) with blue gradient
+            const lakeGradient = ctx.createLinearGradient(0, 0, 0, canvasHeight * 0.3);
+            lakeGradient.addColorStop(0, 'rgba(30, 60, 114, 0.4)');
+            lakeGradient.addColorStop(1, 'rgba(42, 82, 152, 0.3)');
+            ctx.fillStyle = lakeGradient;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight * 0.3);
+
+            // Draw Duluth hills (middle section) with blue tones
+            const hillGradient = ctx.createLinearGradient(0, canvasHeight * 0.3, 0, canvasHeight * 0.7);
+            hillGradient.addColorStop(0, '#4a5d7a');
+            hillGradient.addColorStop(1, '#2c3e50');
+            ctx.fillStyle = hillGradient;
+            ctx.fillRect(0, canvasHeight * 0.3, canvasWidth, canvasHeight * 0.4);
+
+            // Draw city streets (bottom section) with blue-gray
+            const streetGradient = ctx.createLinearGradient(0, canvasHeight * 0.7, 0, canvasHeight);
+            streetGradient.addColorStop(0, '#5a6c7d');
+            streetGradient.addColorStop(1, '#34495e');
+            ctx.fillStyle = streetGradient;
+            ctx.fillRect(0, canvasHeight * 0.7, canvasWidth, canvasHeight * 0.3);
+
+            // Draw lane dividers
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            for (let i = 1; i < lanes; i++) {
+                const y = i * tileSize;
+                ctx.beginPath();
+                ctx.setLineDash([10, 10]);
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvasWidth, y);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Draw obstacles
+            obstacles.forEach(obstacle => {
+                if (obstacle.type === 'car') {
+                    ctx.fillStyle = '#FF4500';
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                    // Car details
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(obstacle.x + 5, obstacle.y + 5, 10, 10);
+                    ctx.fillRect(obstacle.x + obstacle.width - 15, obstacle.y + 5, 10, 10);
+                } else if (obstacle.type === 'boat') {
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                    // Boat sail
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(obstacle.x + 20, obstacle.y - 10, 20, 15);
+                } else if (obstacle.type === 'train') {
+                    ctx.fillStyle = '#000080';
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                    // Train details
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillRect(obstacle.x + 10, obstacle.y + 5, 15, 10);
+                }
+            });
+
+            // Draw player (Duluth resident)
+            ctx.fillStyle = '#FF69B4';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            // Player details
+            ctx.fillStyle = '#000';
+            ctx.fillRect(player.x + 5, player.y + 5, 10, 10);
+        }
+
+        // Update game
+        function updateGame() {
+            if (!gameRunning) return;
+
+            // Move obstacles
+            obstacles.forEach((obstacle, index) => {
+                obstacle.x += obstacle.speed * obstacle.direction;
+                
+                // Remove obstacles that are off screen
+                if (obstacle.x > canvasWidth + 100 || obstacle.x < -100) {
+                    obstacles.splice(index, 1);
+                }
+            });
+
+            // Create new obstacles
+            const currentTime = Date.now();
+            if (currentTime - lastObstacleTime > obstacleInterval) {
+                createObstacle();
+                lastObstacleTime = currentTime;
+            }
+
+            // Check win condition (reached top)
+            if (player.y <= 0) {
+                levelComplete();
+                return;
+            }
+
+            // Check collisions
+            obstacles.forEach(obstacle => {
+                if (player.x < obstacle.x + obstacle.width &&
+                    player.x + player.width > obstacle.x &&
+                    player.y < obstacle.y + obstacle.height &&
+                    player.y + player.height > obstacle.y) {
+                    gameOver();
+                }
+            });
+
+            // Update score based on player position
+            const newScore = Math.floor((canvasHeight - player.y) / 10) + (level - 1) * 100;
+            if (newScore > score) {
+                score = newScore;
+                scoreElement.textContent = score;
+            }
+
+            drawGame();
+        }
+
+        // Level complete
+        function levelComplete() {
+            gameRunning = false;
+            level++;
+            
+            if (level > 10) {
+                // Game won!
+                gameWinElement.style.display = 'block';
+                createConfetti();
+            } else {
+                // Next level
+                levelCompleteElement.style.display = 'block';
+                levelElement.textContent = level;
+                createConfetti();
+                
+                // Reset player position for next level
+                setTimeout(() => {
+                    player.y = canvasHeight - tileSize * 2;
+                    obstacles = [];
+                    gameSpeed += 0.5;
+                    obstacleInterval = Math.max(800, obstacleInterval - 200);
+                    levelCompleteElement.style.display = 'none';
+                    gameRunning = true;
+                }, 2000);
+            }
+        }
+
+        // Create confetti
+        function createConfetti() {
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.animationDelay = Math.random() * 3 + 's';
+                confetti.style.background = Math.random() > 0.5 ? '#9b59b6' : '#e91e63';
+                document.body.appendChild(confetti);
+                
+                setTimeout(() => {
+                    confetti.remove();
+                }, 3000);
+            }
+        }
+
+        // Game over
+        function gameOver() {
+            gameRunning = false;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('duluthHighScore', highScore);
+                highScoreElement.textContent = highScore;
+            }
+            gameOverElement.style.display = 'block';
+            startBtn.style.display = 'none';
+            restartBtn.style.display = 'inline-block';
+        }
+
+        // Start game
+        function startGame() {
+            gameRunning = true;
+            startBtn.style.display = 'none';
+            restartBtn.style.display = 'none';
+            gameOverElement.style.display = 'none';
+            levelCompleteElement.style.display = 'none';
+            gameWinElement.style.display = 'none';
+        }
+
+        // Restart game
+        function restartGame() {
+            initGame();
+        }
+
+        // Handle keyboard input
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning) return;
+
+            const moveDistance = tileSize;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (player.y > 0) {
+                        player.y -= moveDistance;
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (player.y < canvasHeight - tileSize) {
+                        player.y += moveDistance;
+                    }
+                    break;
+                case 'ArrowLeft':
+                    if (player.x > 0) {
+                        player.x -= moveDistance;
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (player.x < canvasWidth - tileSize) {
+                        player.x += moveDistance;
+                    }
+                    break;
+            }
+        });
+
+        // Game loop
+        function gameLoop() {
+            updateGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize game on page load
+        initGame();
+        gameLoop();
+    </script>
+</body>
+</html>
